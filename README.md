@@ -1,7 +1,7 @@
-# 🚀 Microservices Token Distribution System
+# 🚀 Unified Blockchain Services System
 
 **Production-grade microservices architecture** using PubSub for the gaming industry.
-This system implements asynchronous ERC20 token distribution to campaign participants.
+This system implements asynchronous **ERC20 token distribution** and **token exchange** to campaign participants.
 
 ## 🏗️ Architecture
 
@@ -27,26 +27,33 @@ This system implements asynchronous ERC20 token distribution to campaign partici
 ## 📦 Service Architecture
 
 ### 🎯 Campaign Service (`/campaign`)
-- **Role**: Token grant request processing, result handling, notification management
+- **Role**: Token operations request processing, result handling, notification management
 - **Port**: 8080
+- **Operations**: 
+  - Token Grant (ERC20 minting)
+  - Token Exchange (Token swapping)
 - **Endpoints**:
   - `POST /token-request` - Token grant request
+  - `POST /exchange-request` - Token exchange request
   - `GET /status` - User status check
 
 ### ⛓️ Blockchain Service (`/blockchain`)
-- **Role**: ERC20 token minting, transaction processing
+- **Role**: ERC20 token minting and exchange processing
 - **Port**: 8081
+- **Operations**:
+  - Token Grant Processing (90% success rate)
+  - Token Exchange Processing (85% success rate)
 - **Endpoints**:
   - `GET /health` - Health check
   - `GET /stats` - Service statistics
 
 ### 📡 PubSub Topics & Subscriptions
 - **Topics**:
-  - `token-grant-requests` - Token grant requests
-  - `token-grant-results` - Token grant results
+  - `blockchain-requests` - Unified request topic (Grant + Exchange)
+  - `blockchain-results` - Unified result topic
 - **Subscriptions**:
-  - `token-grant-requests-sub` - For Blockchain Service
-  - `token-grant-results-sub` - For Campaign Service
+  - `blockchain-requests-sub` - For Blockchain Service
+  - `blockchain-results-sub` - For Campaign Service
 
 ## 🚀 Getting Started
 
@@ -83,22 +90,36 @@ go run main.go
 
 ## 🧪 Manual Testing
 
-### Basic Operations
+### Token Grant Operations
 
-1. **Service Health Check**
+1. **Token Grant Request**
+```bash
+curl -X POST "http://localhost:8080/token-request?user_id=alice&campaign_id=summer&amount=150"
+```
+
+2. **Check Grant Results**
+```bash
+curl "http://localhost:8080/status?user_id=alice"
+```
+
+### Token Exchange Operations
+
+1. **Token Exchange Request**
+```bash
+curl -X POST "http://localhost:8080/exchange-request?user_id=bob&campaign_id=summer&from_token_type=ERC20&to_token_type=GOLD&from_amount=200&exchange_rate=1.5"
+```
+
+2. **Check Exchange Results**
+```bash
+curl "http://localhost:8080/status?user_id=bob"
+```
+
+### Service Health Check
+
 ```bash
 curl http://localhost:8080/status?user_id=test
 curl http://localhost:8081/health
-```
-
-2. **Token Grant Request**
-```bash
-curl -X POST "http://localhost:8080/token-request?user_id=alice&campaign_id=summer"
-```
-
-3. **Check Results**
-```bash
-curl "http://localhost:8080/status?user_id=alice"
+curl http://localhost:8081/stats
 ```
 
 ### PubSub Monitoring
@@ -115,18 +136,27 @@ curl "http://localhost:8681/v1/projects/test-project/subscriptions"
 
 3. **Topic Details**
 ```bash
-curl "http://localhost:8681/v1/projects/test-project/topics/token-grant-requests"
+curl "http://localhost:8681/v1/projects/test-project/topics/blockchain-requests"
+curl "http://localhost:8681/v1/projects/test-project/topics/blockchain-results"
 ```
 
 ## 🔄 Processing Flow
 
+### Token Grant Flow
 1. **Campaign Service**: User participates in campaign
-2. **PubSub**: Send message to `token-grant-requests` topic
-3. **Blockchain Service**: Receive message, process ERC20 token minting
-4. **PubSub**: Send result to `token-grant-results` topic
-5. **Campaign Service**: Receive result, update database, notify user
+2. **PubSub**: Send grant request to `blockchain-requests` topic
+3. **Blockchain Service**: Process ERC20 token minting
+4. **PubSub**: Send grant result to `blockchain-results` topic
+5. **Campaign Service**: Update database, notify user
 
-## 📊 Message Format
+### Token Exchange Flow
+1. **Campaign Service**: User initiates token exchange
+2. **PubSub**: Send exchange request to `blockchain-requests` topic
+3. **Blockchain Service**: Process token swapping
+4. **PubSub**: Send exchange result to `blockchain-results` topic
+5. **Campaign Service**: Update database, notify user
+
+## 📊 Message Formats
 
 ### Token Grant Request
 ```json
@@ -136,7 +166,24 @@ curl "http://localhost:8681/v1/projects/test-project/topics/token-grant-requests
   "campaign_id": "summer_campaign",
   "token_amount": 100,
   "token_type": "ERC20",
-  "request_id": "req_1234567890",
+  "request_id": "grant_1234567890",
+  "timestamp": "2024-07-15T04:30:00Z",
+  "retry_count": 0
+}
+```
+
+### Token Exchange Request
+```json
+{
+  "event_type": "token.exchange.requested",
+  "user_id": "user123",
+  "campaign_id": "summer_campaign",
+  "from_token_type": "ERC20",
+  "to_token_type": "GOLD",
+  "from_amount": 100,
+  "to_amount": 150,
+  "exchange_rate": 1.5,
+  "request_id": "exchange_1234567890",
   "timestamp": "2024-07-15T04:30:00Z",
   "retry_count": 0
 }
@@ -148,8 +195,26 @@ curl "http://localhost:8681/v1/projects/test-project/topics/token-grant-requests
   "event_type": "token.grant.completed",
   "user_id": "user123",
   "campaign_id": "summer_campaign",
-  "request_id": "req_1234567890",
+  "request_id": "grant_1234567890",
   "transaction_hash": "0x1234567890abcdef",
+  "granted_amount": 100,
+  "granted_token_type": "ERC20",
+  "timestamp": "2024-07-15T04:30:00Z",
+  "processed_at": "2024-07-15T04:30:05Z"
+}
+```
+
+### Token Exchange Result
+```json
+{
+  "event_type": "token.exchange.completed",
+  "user_id": "user123",
+  "campaign_id": "summer_campaign",
+  "request_id": "exchange_1234567890",
+  "transaction_hash": "0x1234567890abcdef",
+  "exchanged_from_amount": 100,
+  "exchanged_to_amount": 150,
+  "actual_exchange_rate": 1.5,
   "timestamp": "2024-07-15T04:30:00Z",
   "processed_at": "2024-07-15T04:30:05Z"
 }
@@ -255,12 +320,43 @@ kubectl apply -f k8s/
 
 ## 📈 Performance Metrics
 
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Average Processing Time | < 3 seconds | Until token grant completion |
-| Availability | 99.9% | Monthly downtime < 43 minutes |
-| Throughput | 1000 req/sec | Peak time support |
-| Error Rate | < 0.1% | Successful transaction rate |
+| Metric | Token Grant | Token Exchange | Notes |
+|--------|-------------|----------------|-------|
+| Average Processing Time | < 3 seconds | < 5 seconds | Including blockchain confirmation |
+| Success Rate | 90% | 85% | Simulated transaction success rates |
+| Availability | 99.9% | 99.9% | Monthly downtime < 43 minutes |
+| Throughput | 1000 req/sec | 500 req/sec | Peak time support |
+
+## 🧪 Testing Coverage
+
+### Automated Tests
+- ✅ Service Health Checks
+- ✅ PubSub Infrastructure
+- ✅ Token Grant Flow
+- ✅ Token Exchange Flow
+- ✅ Mixed Operations
+- ✅ Concurrent Processing
+- ✅ Error Handling
+- ✅ Message Monitoring
+
+### Manual Testing
+- Token grant operations
+- Token exchange operations
+- Service health monitoring
+- PubSub topic management
+- Error scenario handling
+
+## 🔍 Event Types
+
+### Token Grant Events
+- `token.grant.requested` - Grant request initiated
+- `token.grant.completed` - Grant successfully processed
+- `token.grant.failed` - Grant processing failed
+
+### Token Exchange Events
+- `token.exchange.requested` - Exchange request initiated
+- `token.exchange.completed` - Exchange successfully processed
+- `token.exchange.failed` - Exchange processing failed
 
 ## 📚 References
 
