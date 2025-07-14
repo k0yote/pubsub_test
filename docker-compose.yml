@@ -1,0 +1,14 @@
+services:
+  pubsub_emulator:
+    image: thekevjames/gcloud-pubsub-emulator:latest
+    platform: linux/amd64
+    ports:
+      - "8681:8681"
+    environment:
+      - PUBSUB_PROJECT1=test-project
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8681/v1/projects/test-project/topics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
