@@ -3,18 +3,21 @@
 **Production-grade microservices architecture** using PubSub for the gaming industry.
 This system implements asynchronous **ERC20 token distribution** and **token exchange** to campaign participants.
 
-## 🏗️ Architecture
+## 🏗️ Architecture (Hybrid REST + PubSub)
 
 ```
-┌─────────────────┐    PubSub     ┌─────────────────┐
-│                 │ ───────────── │                 │
-│ Campaign Service│               │Blockchain Service│
-│                 │ ←─────────── │                 │
-│ Port: 8080     │               │ Port: 8081     │
-└─────────────────┘               └─────────────────┘
-         │                                 │
-         │                                 │
-         └─────────────────┬───────────────┘
+┌─────────────────┐                    ┌─────────────────┐
+│                 │  REST API          │                 │
+│ Campaign Service│ ──────────────────►│Blockchain Service│
+│                 │  (Immediate Tx)    │                 │
+│ Port: 8080     │                    │ Port: 8081     │
+│                 │ ◄─── PubSub ─────── │                 │
+│                 │  (Final Results)   │                 │
+└─────────────────┘                    └─────────────────┘
+         │                                       │
+         │              PubSub                   │
+         │        (Legacy Support)               │
+         └─────────────────┬─────────────────────┘
                            │
                 ┌─────────────────┐
                 │                 │
@@ -23,6 +26,16 @@ This system implements asynchronous **ERC20 token distribution** and **token exc
                 │ Port: 8681     │
                 └─────────────────┘
 ```
+
+### 🔄 Transaction Flow
+
+**Modern Approach (Default)**:
+1. **REST Request**: Campaign → Blockchain (immediate tx_hash)
+2. **PubSub Result**: Blockchain → Campaign (final confirmation)
+
+**Legacy Approach**:
+1. **PubSub Request**: Campaign → Blockchain  
+2. **PubSub Result**: Blockchain → Campaign
 
 ## 📦 Service Architecture
 
@@ -90,28 +103,42 @@ go run main.go
 
 ## 🧪 Manual Testing
 
-### Token Grant Operations
+### Modern REST API Approach (Default)
 
-1. **Token Grant Request**
+1. **Token Grant Request (REST)**
 ```bash
+# Returns immediate transaction hash + status
 curl -X POST "http://localhost:8080/token-request?user_id=alice&campaign_id=summer&amount=150"
 ```
 
-2. **Check Grant Results**
+2. **Token Exchange Request (REST)**
 ```bash
-curl "http://localhost:8080/status?user_id=alice"
-```
-
-### Token Exchange Operations
-
-1. **Token Exchange Request**
-```bash
+# Returns immediate transaction hash + status
 curl -X POST "http://localhost:8080/exchange-request?user_id=bob&campaign_id=summer&from_token_type=ERC20&to_token_type=GOLD&from_amount=200&exchange_rate=1.5"
 ```
 
-2. **Check Exchange Results**
+3. **Check Transaction Status**
 ```bash
-curl "http://localhost:8080/status?user_id=bob"
+# Get specific transaction status
+curl "http://localhost:8081/transaction-status?hash=<transaction_hash>"
+```
+
+4. **Check User Status**
+```bash
+# Get user's notifications and pending transactions
+curl "http://localhost:8080/status?user_id=alice"
+```
+
+### Legacy PubSub Approach
+
+1. **Token Grant Request (PubSub)**
+```bash
+curl -X POST "http://localhost:8080/token-request?user_id=alice&campaign_id=summer&amount=150&method=pubsub"
+```
+
+2. **Token Exchange Request (PubSub)**
+```bash
+curl -X POST "http://localhost:8080/exchange-request?user_id=bob&campaign_id=summer&from_token_type=ERC20&to_token_type=GOLD&from_amount=200&exchange_rate=1.5&method=pubsub"
 ```
 
 ### Service Health Check
@@ -236,27 +263,57 @@ curl "http://localhost:8681/v1/projects/test-project/topics/blockchain-results"
 - **Health Check**: PubSub Emulator monitoring
 - **Auto Recovery**: Automatic restart on failure
 
+## 🎯 Hybrid Architecture Benefits
+
+### 1. **Immediate Feedback (REST)**
+- ✅ Instant transaction hash response
+- ✅ Real-time error handling
+- ✅ Better user experience
+- ✅ Transaction status tracking
+
+### 2. **Reliable Final Results (PubSub)**
+- ✅ Asynchronous confirmation processing
+- ✅ Decoupled result notifications
+- ✅ Retry capability for failed transactions
+- ✅ Event-driven architecture benefits
+
+### 3. **Best of Both Worlds**
+- 🔗 **SendTransaction**: Fast REST API response
+- 📄 **Transaction Receipt**: Reliable PubSub confirmation
+- 🔄 **State Management**: pending → confirmed → finalized
+- 📊 **Full Visibility**: Track entire transaction lifecycle
+
+### 4. **Backward Compatibility**
+- 🔧 Legacy PubSub method still supported
+- 🔄 Gradual migration path
+- 📈 Zero-downtime deployment
+- 🛡️ Risk-free architecture evolution
+
 ## 🎯 Production Considerations
 
 ### 1. Availability & Redundancy
 - Multiple instances of each service
 - Load balancer deployment
 - Health check functionality
+- Circuit breaker patterns
 
 ### 2. Monitoring & Logging
 - Structured log output
 - Metrics collection
 - Distributed tracing
+- Transaction lifecycle monitoring
 
 ### 3. Security
 - Authentication & authorization
 - TLS communication
 - Rate limiting
+- API key management
 
 ### 4. Scalability
 - Horizontal scaling
 - Distributed message processing
 - Caching functionality
+- Database connection pooling
 
 ## 🛠️ Development & Operations
 

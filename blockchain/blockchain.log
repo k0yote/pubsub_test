@@ -1,0 +1,12 @@
+2025/07/16 05:35:24 🚀 Blockchain Service Starting...
+2025/07/16 05:35:24 ⛓️  Blockchain Service is ready!
+2025/07/16 05:35:24 📊 Test endpoints:
+2025/07/16 05:35:24 📡 HTTP server starting on :8081
+2025/07/16 05:35:24   GET /health
+2025/07/16 05:35:24   GET /stats
+2025/07/16 05:35:24 🔧 Supported operations:
+2025/07/16 05:35:24   - Token Grant (ERC20 minting)
+2025/07/16 05:35:24   - Token Exchange (Token swapping)
+2025/07/16 05:35:24 ⛓️  Blockchain Service: Listening for legacy PubSub requests...
+2025/07/16 05:35:24 HTTP server failed: listen tcp :8081: bind: address already in use
+exit status 1

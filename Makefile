@@ -55,7 +55,7 @@ run-blockchain:
 
 # Run automated tests
 test:
-	@echo "🧪 Running automated tests..."
+	@echo "🧪 Running Hybrid REST + PubSub Test Suite..."
 	@if [ ! -f ./test_services.sh ]; then \
 		echo "❌ Test script not found!"; \
 		exit 1; \
@@ -73,6 +73,8 @@ status:
 	@echo "🌐 HTTP Endpoints:"
 	@echo "  Campaign Service:  http://localhost:8080/status?user_id=test"
 	@echo "  Blockchain Service: http://localhost:8081/health"
+	@echo "  Blockchain API:    http://localhost:8081/submit-transaction"
+	@echo "  Transaction Status: http://localhost:8081/transaction-status?hash=<tx_hash>"
 	@echo "  PubSub Emulator:   http://localhost:8681/v1/projects/test-project/topics"
 	@echo ""
 	@echo "🔍 Quick Health Check:"
