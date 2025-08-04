@@ -1,2 +1,2 @@
-blockchain.log
-campaign.log
+*.log
+*.pid
